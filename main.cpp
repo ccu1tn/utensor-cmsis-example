@@ -4,6 +4,7 @@
 #include "arm_nnfunctions.h"
 #include "stdlib.h"
 #include <math.h>
+#include <algorithm>
 
 Timer T;
 Serial pc(USBTX, USBRX, 115200);
@@ -27,7 +28,7 @@ void test_fc(void) {
   printf("out result: %d %d, %d, %d\r\n", pOut[0], pOut[1], pOut[2], pOut[3]);
 }
 
-void test_conv(void) {
+void test_conv(bool pad_same = true) {
   q7_t Im_in[16] = {16,    5,    9,    4,
                     2,   11,    7,   14,
                     3,   10,    6,   15,
@@ -44,24 +45,49 @@ void test_conv(void) {
   uint16_t stride_x = 1;              //convolution stride x
   uint16_t stride_y = 1;              //convolution stride y
   q7_t conv_bias[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};                    //pointer to bias
-  q7_t Im_out[16];                        //pointer to output tensor
-  uint16_t dim_im_out_x = 4;          //output tensor dimension x
-  uint16_t dim_im_out_y = 4;          //output tensor dimension y
+  q15_t Im_out[16];                        //pointer to output tensor
+  uint16_t dim_im_out_x;          //output tensor dimension x
+  uint16_t dim_im_out_y;          //output tensor dimension y
   q15_t bufferA[16];                   // 2 * 2 * 2?      //pointer to buffer space for input
   q7_t  bufferB[16];                 //pointer to buffer space for output
 
   uint16_t bias_shift = 0;
   uint16_t out_shift = 0;
 
-  arm_convolve_HWC_q7_basic_nonsquare(Im_in, dim_im_in_x, dim_im_in_y, ch_im_in,
-                                      wt, ch_im_out, dim_kernel_x, dim_kernel_y,
-                                      padding_x, padding_y, stride_x, stride_y, conv_bias,
-                                      bias_shift, out_shift,
-                                      Im_out, dim_im_out_x, dim_im_out_y,
-                                      bufferA, bufferB);
+  uint16_t pad_along_height;
+  uint16_t pad_along_width;
 
-  printf("\r\arm_convolve_HWC_q7_basic_nonsquare:\r\n");
-  printf("out result:\r\n");
+  if (pad_same) {
+    dim_im_out_y = ceil(float(dim_im_in_y) / float(stride_y));
+    dim_im_out_x  = ceil(float(dim_im_in_x) / float(stride_x));
+
+    if (dim_im_out_y % stride_y == 0) {
+      pad_along_height = max(dim_kernel_y - stride_y, 0);
+    } else {
+      pad_along_height = max(dim_kernel_y - (dim_im_in_y % stride_y), 0);
+    }
+    
+    if (dim_im_out_x % stride_x == 0) {
+      pad_along_width = max(dim_kernel_x - stride_x, 0);
+    } else {
+      pad_along_width = max(dim_kernel_x - (dim_im_in_x % stride_x), 0);
+    }
+
+    padding_x = pad_along_width / 2;
+    padding_y = pad_along_height / 2;
+  } else {
+    dim_im_out_y = ceil(float(dim_im_in_y - dim_kernel_y + 1) / float(stride_y));
+    dim_im_out_x = ceil(float(dim_im_in_x - dim_kernel_x + 1) / float(stride_x));
+  }
+
+
+  arm_convolve_HWC_q7_basic_nonsquare_no_shift_no_bias(Im_in, dim_im_in_x, dim_im_in_y, ch_im_in,
+                                    wt, ch_im_out, dim_kernel_x, dim_kernel_y,
+                                    padding_x, padding_y, stride_x, stride_y,
+                                    Im_out, dim_im_out_x, dim_im_out_y,
+                                    bufferA, bufferB);
+  
+
   for(uint32_t y = 0; y < dim_im_out_y; y++) {
     for(uint32_t x = 0; x < dim_im_out_x; x++) {
       auto tmp = Im_out[x + y * dim_im_out_y];
@@ -83,8 +109,14 @@ int main()
 {
   printf("Tests Start:");
   test_fc();
-  test_conv();
-  printf("Tests End");
+
+  printf("\r\arm_convolve_HWC_q7_basic_nonsquare:\r\n");
+  printf("same:\r\n");
+  test_conv(true); //same
+  printf("valid:\r\n");
+  test_conv(false); //same
+
+  printf("Tests End\r\n");
 
 
   // arm_convolve_HWC_q7_basic_nonsquare_no_shift(Im_in, dim_im_in_x, dim_im_in_y, ch_im_in,
