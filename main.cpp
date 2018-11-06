@@ -28,29 +28,20 @@ void test_fc(void) {
   printf("out result: %d %d, %d, %d\r\n", pOut[0], pOut[1], pOut[2], pOut[3]);
 }
 
-void test_conv(bool pad_same = true) {
-  q7_t Im_in[25] = { 42,   102,   -88,   -28,   -18,
-                    112,   -78,   -68,    -8,    52,
-                   -118,   -58,     2,    62,   122,
-                    -48,    12,    72,    82,  -108,
-                     22,    32,    92,   -98,   -38};   //im = magic(5)' * 10
-                                                        //pointer to input tensor
-  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
-  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
+void conv(q7_t *Im_in, uint16_t dim_im_in_x, uint16_t dim_im_in_y,
+           q7_t *wt, uint16_t dim_kernel_x, uint16_t dim_kernel_y,
+           q15_t *Im_out, uint16_t dim_im_out_x, uint16_t dim_im_out_y,
+           bool pad_same = true)
+{
   uint16_t ch_im_in = 1;                     //number of input tensor channels
-  q7_t wt[4] = {10, -10, -7, 7};                      //pointer to kernel weights
   uint16_t ch_im_out = 1;             //number of filters, i.e., output tensor channels
-  uint16_t dim_kernel_x = 2;          //filter kernel size x
-  uint16_t dim_kernel_y = 2;          //filter kernel size y
   uint16_t padding_x = 0;             //padding size x
   uint16_t padding_y = 0;             //padding size y
   uint16_t stride_x = 1;              //convolution stride x
   uint16_t stride_y = 1;              //convolution stride y
-  q15_t Im_out[25];                        //pointer to output tensor
-  uint16_t dim_im_out_x;          //output tensor dimension x
-  uint16_t dim_im_out_y;          //output tensor dimension y
   q15_t bufferA[64];                   // 2 * 2 * 2?      //pointer to buffer space for input //???
   q7_t  bufferB[64];                 //pointer to buffer space for output  //???
+
   uint16_t pad_along_height;
   uint16_t pad_along_width;
 
@@ -101,6 +92,348 @@ void test_conv(bool pad_same = true) {
     printf("\r\n");
   }
 }
+//im = magic(5) * 10 - 128
+//w = [10 -10; -7 7]
+//conv2(im, w, 'same')
+void test_conv_magic5() {
+  q7_t Im_in[25] = {
+                     42,   112,  -118,   -48,    22,
+                    102,   -78,   -58,    12,    32,
+                    -88,   -68,     2,    72,    92,
+                    -28,    -8,    62,    82,   -98,
+                    -18,    52,   122,  -108,   -38
+                    };   //im = magic(5)' * 10
+                                                        //pointer to input tensor
+  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
+  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
+
+  q7_t wt[4] = {7, -7, -10, 10};                      //pointer to kernel weights
+  
+  uint16_t dim_kernel_x = 2;          //filter kernel size x
+  uint16_t dim_kernel_y = 2;          //filter kernel size y
+
+
+  q15_t Im_out[25];                        //pointer to output tensor
+  uint16_t dim_im_out_x;          //output tensor dimension x
+  uint16_t dim_im_out_y;          //output tensor dimension y
+
+  conv(Im_in, dim_im_in_x, dim_im_in_y,
+       wt, dim_kernel_x, dim_kernel_y,
+      Im_out, dim_im_out_x, dim_im_out_y,
+      true);
+}
+
+  //  712  -568  -848    72   216
+  // -528  -808   112   832   496
+  // -768   -48   872   592   -24
+  //   -8   912   632  -648  -544
+  //  136   696    56  -584  -152
+void test_conv_magic5_2() {
+  q7_t Im_in[25] = {
+                     42,   112,  -118,   -48,    22,
+                    102,   -78,   -58,    12,    32,
+                    -88,   -68,     2,    72,    92,
+                    -28,    -8,    62,    82,   -98,
+                    -18,    52,   122,  -108,   -38
+                    };   //im = magic(5)' * 10
+                                                        //pointer to input tensor
+  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
+  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
+
+  q7_t wt[4] = {4, 4, 4, 4};                      //pointer to kernel weights
+  
+  uint16_t dim_kernel_x = 2;          //filter kernel size x
+  uint16_t dim_kernel_y = 2;          //filter kernel size y
+
+
+  q15_t Im_out[25];                        //pointer to output tensor
+  uint16_t dim_im_out_x;          //output tensor dimension x
+  uint16_t dim_im_out_y;          //output tensor dimension y
+
+  conv(Im_in, dim_im_in_x, dim_im_in_y,
+       wt, dim_kernel_x, dim_kernel_y,
+      Im_out, dim_im_out_x, dim_im_out_y,
+      true);
+}
+
+  // 1024   -336   -896    -56    216
+  // -256   -816   -176    464    496
+  // -736   -296    544    984    -24
+  // -216    424   1064   -496   -544
+  //  136    696     56   -584   -152
+  //w = [0 4; 4 4]
+void test_conv_magic5_3() {
+  q7_t Im_in[25] = {
+                     42,   112,  -118,   -48,    22,
+                    102,   -78,   -58,    12,    32,
+                    -88,   -68,     2,    72,    92,
+                    -28,    -8,    62,    82,   -98,
+                    -18,    52,   122,  -108,   -38
+                    };   //im = magic(5)' * 10
+                                                        //pointer to input tensor
+  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
+  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
+
+  q7_t wt[4] = {0, 4, 4, 4};                      //pointer to kernel weights
+  
+  uint16_t dim_kernel_x = 2;          //filter kernel size x
+  uint16_t dim_kernel_y = 2;          //filter kernel size y
+
+
+  q15_t Im_out[25];                        //pointer to output tensor
+  uint16_t dim_im_out_x;          //output tensor dimension x
+  uint16_t dim_im_out_y;          //output tensor dimension y
+
+  conv(Im_in, dim_im_in_x, dim_im_in_y,
+       wt, dim_kernel_x, dim_kernel_y,
+      Im_out, dim_im_out_x, dim_im_out_y,
+      true);
+}
+
+  //  630  -120  -720   -70   152
+  //  -70  -620  -120   380   312
+  // -620  -220   430   630   172
+  // -120   380   630  -220  -468
+  //   84   574   164  -546  -152
+//w = [1 2; 3 4]
+void test_conv_magic5_4() {
+  q7_t Im_in[25] = {
+                     42,   112,  -118,   -48,    22,
+                    102,   -78,   -58,    12,    32,
+                    -88,   -68,     2,    72,    92,
+                    -28,    -8,    62,    82,   -98,
+                    -18,    52,   122,  -108,   -38
+                    };   //im = magic(5)' * 10
+                                                        //pointer to input tensor
+  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
+  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
+
+  q7_t wt[4] = {4, 3, 2, 1};                      //pointer to kernel weights
+  
+  uint16_t dim_kernel_x = 2;          //filter kernel size x
+  uint16_t dim_kernel_y = 2;          //filter kernel size y
+
+
+  q15_t Im_out[25];                        //pointer to output tensor
+  uint16_t dim_im_out_x;          //output tensor dimension x
+  uint16_t dim_im_out_y;          //output tensor dimension y
+
+  conv(Im_in, dim_im_in_x, dim_im_in_y,
+       wt, dim_kernel_x, dim_kernel_y,
+      Im_out, dim_im_out_x, dim_im_out_y,
+      true);
+}
+
+//im = ones(5) * 256 - 128 - 1
+//w = [1 1; 1 1]
+//conv2(im, w, 'same')
+void test_conv_ones5_box1() {
+  q7_t Im_in[25] = {127,   127,   127,   127,   127,
+                    127,   127,   127,   127,   127,
+                    127,   127,   127,   127,   127,
+                    127,   127,   127,   127,   127,
+                    127,   127,   127,   127,   127};   //im = magic(5)' * 10
+                                                        //pointer to input tensor
+  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
+  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
+
+  q7_t wt[4] = {1, 1, 1, 1};                      //pointer to kernel weights
+  
+  uint16_t dim_kernel_x = 2;          //filter kernel size x
+  uint16_t dim_kernel_y = 2;          //filter kernel size y
+
+
+  q15_t Im_out[25];                        //pointer to output tensor
+  uint16_t dim_im_out_x;          //output tensor dimension x
+  uint16_t dim_im_out_y;          //output tensor dimension y
+
+  conv(Im_in, dim_im_in_x, dim_im_in_y,
+       wt, dim_kernel_x, dim_kernel_y,
+      Im_out, dim_im_out_x, dim_im_out_y,
+      true);
+}
+
+//im = ones(5) * 256 - 128 - 1
+//w = [4 4; 4 4]
+//conv2(im, w, 'same')
+void test_conv_ones5_box2() {
+  q7_t Im_in[25] = {127,   127,   127,   127,   127,
+                    127,   127,   127,   127,   127,
+                    127,   127,   127,   127,   127,
+                    127,   127,   127,   127,   127,
+                    127,   127,   127,   127,   127};   //im = magic(5)' * 10
+                                                        //pointer to input tensor
+  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
+  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
+
+  q7_t wt[4] = {4, 4, 4, 4};                      //pointer to kernel weights
+  
+  uint16_t dim_kernel_x = 2;          //filter kernel size x
+  uint16_t dim_kernel_y = 2;          //filter kernel size y
+
+
+  q15_t Im_out[25];                        //pointer to output tensor
+  uint16_t dim_im_out_x;          //output tensor dimension x
+  uint16_t dim_im_out_y;          //output tensor dimension y
+
+  conv(Im_in, dim_im_in_x, dim_im_in_y,
+       wt, dim_kernel_x, dim_kernel_y,
+      Im_out, dim_im_out_x, dim_im_out_y,
+      true);
+}
+
+  //  1270   1270   1270   1270    254
+  //  1270   1270   1270   1270    254
+  //  1270   1270   1270   1270    254
+  //  1270   1270   1270   1270    254
+  //   635    635    635    635    127
+void test_conv_ones5_box3() {
+  q7_t Im_in[25] = {127,   127,   127,   127,   127,
+                    127,   127,   127,   127,   127,
+                    127,   127,   127,   127,   127,
+                    127,   127,   127,   127,   127,
+                    127,   127,   127,   127,   127};   //im = magic(5)' * 10
+                                                        //pointer to input tensor
+  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
+  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
+
+  q7_t wt[4] = {4, 4, 1, 1};                      //pointer to kernel weights
+  
+  uint16_t dim_kernel_x = 2;          //filter kernel size x
+  uint16_t dim_kernel_y = 2;          //filter kernel size y
+
+
+  q15_t Im_out[25];                        //pointer to output tensor
+  uint16_t dim_im_out_x;          //output tensor dimension x
+  uint16_t dim_im_out_y;          //output tensor dimension y
+
+  conv(Im_in, dim_im_in_x, dim_im_in_y,
+       wt, dim_kernel_x, dim_kernel_y,
+      Im_out, dim_im_out_x, dim_im_out_y,
+      true);
+}
+void test_conv_alt5_box1() {
+  q7_t Im_in[25] = {127,   1,   127,   1,   127,
+                    127,   1,   127,   1,   127,
+                    127,   1,   127,   1,   127,
+                    127,   1,   127,   1,   127,
+                    127,   1,   127,   1,   127};   //im = magic(5)' * 10
+                                                        //pointer to input tensor
+  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
+  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
+
+  q7_t wt[4] = {4, 4, 4, 4};                      //pointer to kernel weights
+  
+  uint16_t dim_kernel_x = 2;          //filter kernel size x
+  uint16_t dim_kernel_y = 2;          //filter kernel size y
+
+
+  q15_t Im_out[25];                        //pointer to output tensor
+  uint16_t dim_im_out_x;          //output tensor dimension x
+  uint16_t dim_im_out_y;          //output tensor dimension y
+
+  conv(Im_in, dim_im_in_x, dim_im_in_y,
+       wt, dim_kernel_x, dim_kernel_y,
+      Im_out, dim_im_out_x, dim_im_out_y,
+      true);
+}
+
+
+  //  1008   1008   1008   1008   1016
+  //  1008   1008   1008   1008   1016
+  //  1008   1008   1008   1008   1016
+  //  1008   1008   1008   1008   1016
+  //   504    504    504    504    508
+
+void test_conv_alt5_box2() {
+  q7_t Im_in[25] = {127,   -1,   127,   -1,   127,
+                    127,   -1,   127,   -1,   127,
+                    127,   -1,   127,   -1,   127,
+                    127,   -1,   127,   -1,   127,
+                    127,   -1,   127,   -1,   127};   //im = magic(5)' * 10
+                                                        //pointer to input tensor
+  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
+  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
+
+  q7_t wt[4] = {4, 4, 4, 4};                      //pointer to kernel weights
+  
+  uint16_t dim_kernel_x = 2;          //filter kernel size x
+  uint16_t dim_kernel_y = 2;          //filter kernel size y
+
+
+  q15_t Im_out[25];                        //pointer to output tensor
+  uint16_t dim_im_out_x;          //output tensor dimension x
+  uint16_t dim_im_out_y;          //output tensor dimension y
+
+  conv(Im_in, dim_im_in_x, dim_im_in_y,
+       wt, dim_kernel_x, dim_kernel_y,
+      Im_out, dim_im_out_x, dim_im_out_y,
+      true);
+}
+
+
+  //    0     0     0     0     0
+  //    0     0     0     0     0
+  //    0     0     0     0     0
+  //    0     0     0     0     0
+  //  512  -512   512  -512   508
+void test_conv_alt5_diff1() {
+  q7_t Im_in[25] = {127,   -1,   127,   -1,   127,
+                    127,   -1,   127,   -1,   127,
+                    127,   -1,   127,   -1,   127,
+                    127,   -1,   127,   -1,   127,
+                    127,   -1,   127,   -1,   127};   //im = magic(5)' * 10
+                                                        //pointer to input tensor
+  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
+  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
+
+  q7_t wt[4] = {4, -4, -4, 4};                      //pointer to kernel weights
+  
+  uint16_t dim_kernel_x = 2;          //filter kernel size x
+  uint16_t dim_kernel_y = 2;          //filter kernel size y
+
+
+  q15_t Im_out[25];                        //pointer to output tensor
+  uint16_t dim_im_out_x;          //output tensor dimension x
+  uint16_t dim_im_out_y;          //output tensor dimension y
+
+  conv(Im_in, dim_im_in_x, dim_im_in_y,
+       wt, dim_kernel_x, dim_kernel_y,
+      Im_out, dim_im_out_x, dim_im_out_y,
+      true);
+}
+
+  //  756   756   756   756   126
+  //  756   756   756   756   126
+  //  756   756   756   756   126
+  //  756   756   756   756   126
+  //  762   762   762   762   127
+void test_conv_alt5_diff2() {
+  q7_t Im_in[25] = {127,   -1,   127,   -1,   127,
+                    127,   -1,   127,   -1,   127,
+                    127,   -1,   127,   -1,   127,
+                    127,   -1,   127,   -1,   127,
+                    127,   -1,   127,   -1,   127};   //im = magic(5)' * 10
+                                                        //pointer to input tensor
+  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
+  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
+
+  q7_t wt[4] = {5, 5, 1, 1};                      //pointer to kernel weights
+  
+  uint16_t dim_kernel_x = 2;          //filter kernel size x
+  uint16_t dim_kernel_y = 2;          //filter kernel size y
+
+
+  q15_t Im_out[25];                        //pointer to output tensor
+  uint16_t dim_im_out_x;          //output tensor dimension x
+  uint16_t dim_im_out_y;          //output tensor dimension y
+
+  conv(Im_in, dim_im_in_x, dim_im_in_y,
+       wt, dim_kernel_x, dim_kernel_y,
+      Im_out, dim_im_out_x, dim_im_out_y,
+      true);
+}
+
 
 int main()
 {
@@ -108,12 +441,29 @@ int main()
   test_fc();
 
   printf("\r\arm_convolve_HWC_q7_basic_nonsquare:\r\n");
-  printf("same:\r\n");
-  test_conv(true); //same
-  printf("valid:\r\n");
-  test_conv(false); //same
-
-  printf("Tests End\r\n");
+  printf("magic5:\r\n");
+  test_conv_magic5(); //same
+  // printf("test_conv_magic5_2\r\n");
+  // test_conv_magic5_2(); //same
+  // printf("test_conv_magic5_3\r\n");
+  // test_conv_magic5_3(); //same
+  // printf("test_conv_magic5_4\r\n");
+  // test_conv_magic5_4(); //same
+  // printf("ones5 box1\r\n");
+  // test_conv_ones5_box1(); //same
+  // printf("ones5 box2\r\n");
+  // test_conv_ones5_box2(); //same
+  // printf("ones5 box3\r\n");
+  // test_conv_ones5_box3(); //same
+  // printf("test_conv_alt5_box1\r\n");
+  // test_conv_alt5_box1(); //same
+  // printf("test_conv_alt5_box2\r\n");
+  // test_conv_alt5_box2(); //same
+  // printf("test_conv_alt5_diff1\r\n");
+  // test_conv_alt5_diff1();
+  // printf("test_conv_alt5_diff2\r\n");
+  // test_conv_alt5_diff2();
+  // printf("Tests End\r\n");
 
 
   // arm_convolve_HWC_q7_basic_nonsquare_no_shift(Im_in, dim_im_in_x, dim_im_in_y, ch_im_in,
