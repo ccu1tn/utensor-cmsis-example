@@ -65,7 +65,7 @@ arm_status arm_convolve_HWC_q7_basic_nonsquare_no_shift_no_bias(const q7_t * Im_
      *  Here we use bufferA as q15_t internally as computation are done with q15_t level
      *  im2col are done to output in q15_t format from q7_t input
      */
-    q15_t    *pBuffer = bufferA;
+    q15_t    *pBuffer = bufferA;  //NT: FIXME: chanmge thsi to q15_t? or template
     T_OUT     *pOut = Im_out;
 
     /* This part implements the im2col function */

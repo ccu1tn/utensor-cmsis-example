@@ -29,14 +29,16 @@ void test_fc(void) {
 }
 
 void test_conv(bool pad_same = true) {
-  q7_t Im_in[16] = {16,    5,    9,    4,
-                    2,   11,    7,   14,
-                    3,   10,    6,   15,
-                  13,    8,   12,    1};   //1 //pointer to input tensor
-  uint16_t dim_im_in_x = 4;                  //input tensor dimention x
-  uint16_t dim_im_in_y = 4;                  //input tensor dimention y
+  q7_t Im_in[25] = { 42,   102,   -88,   -28,   -18,
+                    112,   -78,   -68,    -8,    52,
+                   -118,   -58,     2,    62,   122,
+                    -48,    12,    72,    82,  -108,
+                     22,    32,    92,   -98,   -38};   //im = magic(5)' * 10
+                                                        //pointer to input tensor
+  uint16_t dim_im_in_x = 5;                  //input tensor dimention x
+  uint16_t dim_im_in_y = 5;                  //input tensor dimention y
   uint16_t ch_im_in = 1;                     //number of input tensor channels
-  q7_t wt[4] = {1, -1, -1, 1};                      //pointer to kernel weights
+  q7_t wt[4] = {10, -10, -7, 7};                      //pointer to kernel weights
   uint16_t ch_im_out = 1;             //number of filters, i.e., output tensor channels
   uint16_t dim_kernel_x = 2;          //filter kernel size x
   uint16_t dim_kernel_y = 2;          //filter kernel size y
@@ -44,16 +46,11 @@ void test_conv(bool pad_same = true) {
   uint16_t padding_y = 0;             //padding size y
   uint16_t stride_x = 1;              //convolution stride x
   uint16_t stride_y = 1;              //convolution stride y
-  q7_t conv_bias[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};                    //pointer to bias
-  q15_t Im_out[16];                        //pointer to output tensor
+  q15_t Im_out[25];                        //pointer to output tensor
   uint16_t dim_im_out_x;          //output tensor dimension x
   uint16_t dim_im_out_y;          //output tensor dimension y
-  q15_t bufferA[16];                   // 2 * 2 * 2?      //pointer to buffer space for input
-  q7_t  bufferB[16];                 //pointer to buffer space for output
-
-  uint16_t bias_shift = 0;
-  uint16_t out_shift = 0;
-
+  q15_t bufferA[64];                   // 2 * 2 * 2?      //pointer to buffer space for input //???
+  q7_t  bufferB[64];                 //pointer to buffer space for output  //???
   uint16_t pad_along_height;
   uint16_t pad_along_width;
 
@@ -92,7 +89,7 @@ void test_conv(bool pad_same = true) {
     for(uint32_t x = 0; x < dim_im_out_x; x++) {
       auto tmp = Im_out[x + y * dim_im_out_y];
 
-      uint8_t pad = 4; //alignment with max padding of 4
+      uint8_t pad = 6; //alignment with max padding of 4
       if(tmp != 0) pad = pad - log10(abs(tmp));
       if(tmp <= 0) pad -= 1;
       for(; pad > 0; pad=pad-1) 
